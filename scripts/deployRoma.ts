@@ -18,18 +18,19 @@ export async function run(provider: NetworkProvider) {
 
     const roma = provider.open(await Roma.fromInit(owner, max_supply, owner, content));
 
-    // await roma.send(
-    //     provider.sender(),
-    //     {
-    //         value: toNano('0.5'),
-    //     },
-    //     {
-    //         $$type: 'Deploy',
-    //         queryId: 0n,
-    //     }
-    // );
+    // deploy
+    await roma.send(
+        provider.sender(),
+        {
+            value: toNano('0.5'),
+        },
+        {
+            $$type: 'Deploy',
+            queryId: 0n,
+        }
+    );
 
-    // await provider.waitForDeploy(roma.address);
+    await provider.waitForDeploy(roma.address);
 
     // run methods on `roma`
     // mint all
