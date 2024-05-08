@@ -34,7 +34,7 @@ export async function run(provider: NetworkProvider) {
 
     // run methods on `roma`
     // mint all
-    const mintResult = await roma.send(
+    await roma.send(
         provider.sender(),
         {
             value: toNano('0.2'),
