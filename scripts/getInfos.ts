@@ -6,6 +6,7 @@ import { VoteLogs } from '../wrappers/VoteLogs';
 
 export async function run(provider: NetworkProvider) {
 
+    // this address is the true roma master address
     const roma_address = Address.parse("0QAmvhN60nllxT01f6ubB5oLdx2v_w5P_yXci_L4-r4PUVlU");
 
     const roma = provider.open(Roma.fromAddress(roma_address));
