@@ -163,6 +163,26 @@ describe('Roma', () => {
         expect(record.voter.toString()).toEqual(deployer.address.toString())
         expect(record.amount).toEqual(100000000000n)
         expect(record.votes).toEqual(100n)
+
+        // send change factor
+        const changeFactorResult = await roma.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.5'),
+            },
+            {
+                $$type: "Factor",
+                value: toNano("1.1")
+            }
+        );
+        expect(changeFactorResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: roma.address,
+            success: true,
+        });
+        
+        const factor = await roma.getAmount2votesFactor();
+        expect(factor).toEqual(1100000000n);
            
     });
 });

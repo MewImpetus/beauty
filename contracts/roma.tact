@@ -10,6 +10,9 @@ message BeautyVote {
 message VoteReceiver {
     address: Address;
 }
+message Factor {
+    value: Int;
+}
 message VoteTransfer {
     query_id: Int as uint64; // arbitrary request number
     amount: Int as coins; // amount of jettons to transfer
@@ -59,6 +62,7 @@ contract Roma with JettonMaster, Deployable {
     jetton_content: Cell;
     vote_receiver: Address;
     vote_record_count: Int = 0;
+    amount2votes_factor: Int = ton("1");
     init(owner: Address, max_supply: Int, vote_receiver: Address, jetton_content: Cell){
         self.owner = owner;
         self.max_supply = max_supply;
@@ -87,7 +91,7 @@ contract Roma with JettonMaster, Deployable {
         let init_wallet: StateInit = self.calculate_jetton_wallet_init(ctx.sender);
         send(SendParameters{
                 to: contractAddress(init_wallet),
-                value: ton("0.1"),
+                value: ctx.value - ton("0.15"),
                 bounce: true,
                 mode: SendPayGasSeparately,
                 body: VoteTransfer{
@@ -119,7 +123,7 @@ contract Roma with JettonMaster, Deployable {
         let init_logs: StateInit = self.calculate_log_init(self.vote_record_count);
         send(SendParameters{
                 to: contractAddress(init_logs),
-                value: ton("0.01"),
+                value: ton("0.011"),
                 bounce: true,
                 mode: SendPayGasSeparately, //SendPayGasSeparately
                 body: VoteRecord{
@@ -139,8 +143,14 @@ contract Roma with JettonMaster, Deployable {
         self.vote_receiver = msg.address;
     }
 
+    receive(msg: Factor){
+        self.amount2votes_factor = msg.value;
+    }
+
     inline fun calculate_votes(amount: Int): Int {
-        return amount / 1000000000;
+        let votes: Int = amount / self.amount2votes_factor;
+        require(votes > 0, "Cast at least one vote");
+        return votes;
     }
 
     inline fun calculate_beauty_init(id: Int): StateInit {
@@ -165,11 +175,15 @@ contract Roma with JettonMaster, Deployable {
         return contractAddress(initCode);
     }
 
-    get fun get_vote_receiver(): Address {
+    get fun vote_receiver(): Address {
         return self.vote_receiver;
     }
 
-    get fun get_max_supply(): Int {
+    get fun amount2votes_factor(): Int {
+        return self.amount2votes_factor;
+    }
+
+    get fun max_supply(): Int {
         return self.max_supply;
     }
 }
