@@ -179,6 +179,10 @@ contract Roma with JettonMaster, Deployable {
         return self.vote_receiver;
     }
 
+    get fun vote_record_count(): Int {
+        return self.vote_record_count;
+    }
+
     get fun amount2votes_factor(): Int {
         return self.amount2votes_factor;
     }
