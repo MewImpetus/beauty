@@ -36,7 +36,7 @@ const jettonParams = {
         image: "https://cache.tonapi.io/imgproxy/i7jumPCXC__AWJcr-0PvOjsfa-dzaZpwtIHEqQioLhE/rs:fill:200:200:1/g:no/aHR0cHM6Ly9iaXRjb2luY2FzaC1leGFtcGxlLmdpdGh1Yi5pby93ZWJzaXRlL2xvZ28ucG5n.webp",
     };
 const content = buildOnchainMetadata(jettonParams);
-const max_supply = toNano("210000000");
+const max_supply = toNano("210000000"); 
 const owner = Address.parse("UQAkZEqn5O4_yI3bCBzxpLEsO1Z10QSGDK5O4buL9nQrWNAs")  // roma master合约管理员
 const receiver = Address.parse("UQAkZEqn5O4_yI3bCBzxpLEsO1Z10QSGDK5O4buL9nQrWNAs")  // 投票的币的接收地址,管理员可修改
 const roma = provider.open(await Roma.fromInit(owner, max_supply, receiver, content));
