@@ -1,19 +1,19 @@
 import { Address, toNano } from '@ton/core';
-import { Roma } from '../wrappers/Roma';
+import { Missw } from '../wrappers/Missw';
 import { NetworkProvider } from '@ton/blueprint';
 import { Beauty } from '../wrappers/Beauty';
 import { VoteLogs } from '../wrappers/VoteLogs';
 
 export async function run(provider: NetworkProvider) {
 
-    // this address is the true roma master address
-    const roma_address = Address.parse("0QAmvhN60nllxT01f6ubB5oLdx2v_w5P_yXci_L4-r4PUVlU");
+    // this address is the true missw master address
+    const missw_address = Address.parse("0QAmvhN60nllxT01f6ubB5oLdx2v_w5P_yXci_L4-r4PUVlU");
 
-    const roma = provider.open(Roma.fromAddress(roma_address));
+    const missw = provider.open(Missw.fromAddress(missw_address));
 
 
     // get beauty votes
-    const beauty_address_of_1 = await roma.getGetBeautyAddress(1n);
+    const beauty_address_of_1 = await missw.getGetBeautyAddress(1n);
     const beauty = provider.open(Beauty.fromAddress(beauty_address_of_1));
     const votes = await beauty.getGetVotes();
     console.log(votes);
@@ -21,7 +21,7 @@ export async function run(provider: NetworkProvider) {
     // 100n
 
     // get a log 
-    const log_address_of_1 = await roma.getVoteLogAddress(1n);
+    const log_address_of_1 = await missw.getVoteLogAddress(1n);
     const logs = provider.open(VoteLogs.fromAddress(log_address_of_1));
     const record = await logs.getVoteRecord();
     console.log(record);

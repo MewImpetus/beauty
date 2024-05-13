@@ -22,7 +22,7 @@ message VoteTransfer {
     forward_payload: Slice as remaining; // optional custom data that should be sent to the destination address.
 }
 
-contract RomaWallet with JettonWallet {
+contract MisswWallet with JettonWallet {
     balance: Int as coins = 0;
     owner: Address;
     jetton_master: Address;
@@ -50,11 +50,11 @@ contract RomaWallet with JettonWallet {
     }
 
     override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
-        return initOf RomaWallet(owner_address, self.jetton_master);
+        return initOf MisswWallet(owner_address, self.jetton_master);
     }
 }
 
-contract Roma with JettonMaster, Deployable {
+contract Missw with JettonMaster, Deployable {
     total_supply: Int as coins = 0;
     max_supply: Int as coins;
     mintable: Bool = true;
@@ -87,7 +87,7 @@ contract Roma with JettonMaster, Deployable {
 
     receive(msg: BeautyVote){
         let ctx: Context = context();
-        // send roma to receiver wallet
+        // send missw to receiver wallet
         let init_wallet: StateInit = self.calculate_jetton_wallet_init(ctx.sender);
         send(SendParameters{
                 to: contractAddress(init_wallet),
@@ -162,7 +162,7 @@ contract Roma with JettonMaster, Deployable {
     }
 
     override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
-        return initOf RomaWallet(owner_address, myAddress());
+        return initOf MisswWallet(owner_address, myAddress());
     }
 
     get fun get_beauty_address(id: Int): Address {
