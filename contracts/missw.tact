@@ -21,6 +21,55 @@ message VoteTransfer {
     forward_ton_amount: Int as coins; // the amount of nanotons to be sent to the destination address.
     forward_payload: Slice as remaining; // optional custom data that should be sent to the destination address.
 }
+message AirDrop {
+    receiver: Address;
+    amount: Int as uint64;
+    lock: Bool;
+}
+message Foundation {
+    receiver: Address;
+    amount: Int as uint64;
+}
+message Development {
+    receiver: Address;
+    amount: Int as uint64;
+    lock: Bool;
+}
+message Treasury {
+    receiver: Address;
+    amount: Int as uint64;
+    lock: Bool;
+}
+message VoteLiquidity {
+    receiver: Address;
+    amount: Int as uint64;
+    lock: Bool;
+}
+message Incentives {
+    receiver: Address;
+    amount: Int as uint64;
+}
+message EarlyInvestors {
+    receiver: Address;
+    amount: Int as uint64;
+}
+struct Limit {
+    lock: Int as uint64;
+    unlock: Int as uint64;
+    second: Int as uint64;
+    release: Int as uint32;
+    minted_lock: Int as uint64;
+    minted_unlock: Int as uint64;
+}
+struct Allocation {
+    airdrop: Limit;
+    foundation: Limit;
+    development: Limit;
+    treasury: Limit;
+    vote_liquidity: Limit;
+    incentives: Limit;
+    early_investors: Limit;
+}
 
 contract MisswWallet with JettonWallet {
     balance: Int as coins = 0;
@@ -63,11 +112,73 @@ contract Missw with JettonMaster, Deployable {
     vote_receiver: Address;
     vote_record_count: Int = 0;
     amount2votes_factor: Int = ton("1");
-    init(owner: Address, max_supply: Int, vote_receiver: Address, jetton_content: Cell){
+    deployed_at: Int as uint32;
+    allocation: Allocation;
+    init(owner: Address, vote_receiver: Address, jetton_content: Cell){
         self.owner = owner;
-        self.max_supply = max_supply;
+        self.max_supply = ton("10000000000");
         self.vote_receiver = vote_receiver;
         self.jetton_content = jetton_content;
+        self.deployed_at = now();
+        let year_second: Int = 3600 * 24 * 30 * 12;
+        self.allocation = Allocation{
+            airdrop: Limit{
+                lock: ton("250000000"),
+                unlock: ton("250000000"),
+                second: ton("250000000") / year_second,
+                release: year_second,
+                minted_lock: 0,
+                minted_unlock: 0
+            },
+            foundation: Limit{
+                lock: ton("2000000000"),
+                unlock: 0,
+                second: ton("2000000000") / year_second,
+                release: year_second * 2,
+                minted_lock: 0,
+                minted_unlock: 0
+            },
+            development: Limit{
+                lock: ton("800000000"),
+                unlock: ton("200000000"),
+                second: ton("800000000")/ (year_second * 3),
+                release: year_second * 3,
+                minted_lock: 0,
+                minted_unlock: 0
+            },
+            treasury: Limit{
+                lock: ton("1600000000"),
+                unlock: ton("400000000"),
+                second: ton("1600000000") / (year_second * 2),
+                release: year_second * 2,
+                minted_lock: 0,
+                minted_unlock: 0
+            },
+            vote_liquidity: Limit{
+                lock: ton("1000000000"),
+                unlock: ton("1000000000"),
+                second: ton("1000000000") / year_second,
+                release: year_second,
+                minted_lock: 0,
+                minted_unlock: 0
+            },
+            incentives: Limit{
+                lock: ton("1500000000"),
+                unlock: 0,
+                second: ton("1500000000") / (year_second * 3),
+                release: (year_second * 3),
+                minted_lock: 0,
+                minted_unlock: 0
+            },
+            early_investors: Limit{
+                lock: ton("1000000000"),
+                unlock: 0,
+                second: ton("1500000000") / year_second,
+                release: year_second * 2,
+                minted_lock: 0,
+                minted_unlock: 0
+            }
+        };
     }
 
     receive("Mint:All"){
@@ -85,13 +196,41 @@ contract Missw with JettonMaster, Deployable {
         self.mintable = false;
     }
 
+    receive(msg: AirDrop){
+        let ctx: Context = context();
+        // unlock
+        if (!msg.lock) {
+            self.allocation.airdrop.minted_unlock = (self.allocation.airdrop.minted_unlock + msg.amount);
+            require(self.allocation.airdrop.minted_unlock <= self.allocation.airdrop.unlock, "Mining amount exceeds limit");
+        } else {
+            let can_mint: Int = min((self.allocation.airdrop.second *
+                    (now() -
+                    self.deployed_at) -
+                    self.allocation.airdrop.minted_lock),
+                (self.allocation.airdrop.lock - self.allocation.airdrop.minted_lock)
+            );
+            require(msg.amount <= can_mint, "Mining amount exceeds limit");
+            self.allocation.airdrop.minted_lock = self.allocation.airdrop.minted_lock + msg.amount;
+        }
+        let _msg: JettonMint = JettonMint{
+            origin: ctx.sender,
+            receiver: msg.receiver,
+            amount: msg.amount,
+            custom_payload: emptyCell(),
+            forward_ton_amount: 0,
+            forward_payload: emptySlice()
+        };
+        self._mint_validate(ctx, _msg);
+        self._mint(ctx, _msg);
+    }
+
     receive(msg: BeautyVote){
         let ctx: Context = context();
         // send missw to receiver wallet
         let init_wallet: StateInit = self.calculate_jetton_wallet_init(ctx.sender);
         send(SendParameters{
                 to: contractAddress(init_wallet),
-                value: ctx.value - ton("0.15"),
+                value: (ctx.value - ton("0.18")),
                 bounce: true,
                 mode: SendPayGasSeparately,
                 body: VoteTransfer{

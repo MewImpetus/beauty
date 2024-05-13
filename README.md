@@ -36,10 +36,9 @@ const jettonParams = {
         image: "https://raw.githubusercontent.com/MewImpetus/beauty/main/logo.png",
     };
 const content = buildOnchainMetadata(jettonParams);
-const max_supply = toNano("10000000000"); 
 const owner = Address.parse("UQAkZEqn5O4_yI3bCBzxpLEsO1Z10QSGDK5O4buL9nQrWNAs")  // roma master合约管理员
 const receiver = Address.parse("UQAkZEqn5O4_yI3bCBzxpLEsO1Z10QSGDK5O4buL9nQrWNAs")  // 投票的币的接收地址,管理员可修改
-const roma = provider.open(await Roma.fromInit(owner, max_supply, receiver, content));
+const roma = provider.open(await Roma.fromInit(owner, receiver, content));
 await roma.send(
         provider.sender(),
         {

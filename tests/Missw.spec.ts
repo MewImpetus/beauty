@@ -6,6 +6,7 @@ import { buildOnchainMetadata } from "../utils/jetton-helpers";
 import { MisswWallet } from '../build/Missw/tact_MisswWallet';
 import { Beauty } from '../wrappers/Beauty';
 import { VoteLogs } from '../wrappers/VoteLogs';
+import { sleep } from '@ton/blueprint';
 
 describe('Missw', () => {
     let blockchain: Blockchain;
@@ -28,8 +29,7 @@ describe('Missw', () => {
         };
 
         const content = buildOnchainMetadata(jettonParams);
-        const max_supply = toNano("21000000");
-        missw = blockchain.openContract(await Missw.fromInit(deployer.address, max_supply, bob.address, content));
+        missw = blockchain.openContract(await Missw.fromInit(deployer.address, bob.address, content));
 
 
         const deployResult = await missw.send(
@@ -56,6 +56,129 @@ describe('Missw', () => {
         // blockchain and missw are ready to use
     });
 
+    it('Test: Mint', async () => {
+        const total_supply_0 = (await missw.getGetJettonData()).total_supply;
+        expect(total_supply_0).toEqual(0n);
+
+        let airdropResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "AirDrop",
+                receiver: deployer.address,
+                amount: toNano("250000000"),
+                lock: false
+            }
+        );
+
+        expect(airdropResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: true,
+        });
+
+        const total_supply = (await missw.getGetJettonData()).total_supply;
+        expect(total_supply).toEqual(toNano("250000000"));
+
+        // check balance of deployer
+        const missw_wallet_of_deployer = await missw.getGetWalletAddress(deployer.address)
+
+        // from master -> wallet InterTransfer
+        expect(airdropResult.transactions).toHaveTransaction({
+            from: missw.address,
+            to: missw_wallet_of_deployer,
+            success: true,
+        });
+
+        const missw_wallet_contract = blockchain.openContract(MisswWallet.fromAddress(missw_wallet_of_deployer));
+        const balance_deployer = (await missw_wallet_contract.getGetWalletData()).balance
+        expect(balance_deployer).toEqual(toNano("250000000"));
+
+        // should be fail
+        airdropResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "AirDrop",
+                receiver: deployer.address,
+                amount: toNano("250000000"),
+                lock: false
+            }
+        );
+
+        expect(airdropResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+        airdropResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "AirDrop",
+                receiver: deployer.address,
+                amount: 100n,
+                lock: true
+            }
+        );
+
+        expect(airdropResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+
+        await sleep(1000);
+        airdropResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "AirDrop",
+                receiver: deployer.address,
+                amount: toNano(250000000/(3600*24*30*12)),
+                lock: true
+            }
+        );
+
+        expect(airdropResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: true,
+        });
+
+        airdropResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "AirDrop",
+                receiver: deployer.address,
+                amount: toNano(250000000/(3600*24*30*12)),
+                lock: true
+            }
+        );
+
+        expect(airdropResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+
+
+    });
+
 
     it('TEST: Process', async () => {
 
@@ -77,7 +200,7 @@ describe('Missw', () => {
         });
 
         const total_supply = (await missw.getGetJettonData()).total_supply;
-        expect(total_supply).toEqual(toNano("21000000"));
+        expect(total_supply).toEqual(toNano("10000000000"));
 
         // check balance of deployer
         const missw_wallet_of_deployer = await missw.getGetWalletAddress(deployer.address)
@@ -91,7 +214,7 @@ describe('Missw', () => {
 
         const missw_wallet_contract = blockchain.openContract(MisswWallet.fromAddress(missw_wallet_of_deployer));
         const balance_deployer = (await missw_wallet_contract.getGetWalletData()).balance
-        expect(balance_deployer).toEqual(toNano("21000000"));
+        expect(balance_deployer).toEqual(toNano("10000000000"));
 
         // send beauty
         

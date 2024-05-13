@@ -13,10 +13,9 @@ export async function run(provider: NetworkProvider) {
     };
 
     const content = buildOnchainMetadata(jettonParams);
-    const max_supply = toNano("10000000000");
     const owner = Address.parse("UQAkZEqn5O4_yI3bCBzxpLEsO1Z10QSGDK5O4buL9nQrWNAs")
 
-    const missw = provider.open(await Missw.fromInit(owner, max_supply, owner, content));
+    const missw = provider.open(await Missw.fromInit(owner, owner, content));
 
     // deploy
     await missw.send(
