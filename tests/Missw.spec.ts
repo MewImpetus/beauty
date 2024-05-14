@@ -56,7 +56,7 @@ describe('Missw', () => {
         // blockchain and missw are ready to use
     });
 
-    it('Test: Mint', async () => {
+    it('TEST: AirDrop', async () => {
         const total_supply_0 = (await missw.getGetJettonData()).total_supply;
         expect(total_supply_0).toEqual(0n);
 
@@ -124,7 +124,7 @@ describe('Missw', () => {
             {
                 $$type: "AirDrop",
                 receiver: deployer.address,
-                amount: 100n,
+                amount: toNano("100"),
                 lock: true
             }
         );
@@ -159,12 +159,12 @@ describe('Missw', () => {
         airdropResult = await missw.send(
             deployer.getSender(),
             {
-                value: toNano('0.2'),
+                value: toNano('0.5'),
             },
             {
                 $$type: "AirDrop",
                 receiver: deployer.address,
-                amount: toNano(250000000/(3600*24*30*12)),
+                amount: toNano(250000000/(3600*24*30*6)),
                 lock: true
             }
         );
@@ -175,7 +175,313 @@ describe('Missw', () => {
             success: false,
         });
 
+    });
 
+
+    it('TEST: Foundation', async () => {
+        const total_supply_0 = (await missw.getGetJettonData()).total_supply;
+        expect(total_supply_0).toEqual(0n);
+
+        let mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Foundation",
+                receiver: deployer.address,
+                amount: toNano(2000000000/(3600*24*30*12)),
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+        await sleep(1000);
+
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Foundation",
+                receiver: deployer.address,
+                amount: toNano(2000000000/(3600*24*30*12)),
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+        await sleep(2000);
+
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.1'),
+            },
+            {
+                $$type: "Foundation",
+                receiver: deployer.address,
+                amount: toNano(2000000000/(3600*24*30*12)),
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: true,
+        });
+
+
+    });
+
+    it('TEST: Development', async () => {
+        const total_supply_0 = (await missw.getGetJettonData()).total_supply;
+        expect(total_supply_0).toEqual(0n);
+
+        let mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Development",
+                receiver: deployer.address,
+                amount: toNano("200000000"),
+                lock: false
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: true,
+        });
+
+        const total_supply = (await missw.getGetJettonData()).total_supply;
+        expect(total_supply).toEqual(toNano("200000000"));
+
+        // check balance of deployer
+        const missw_wallet_of_deployer = await missw.getGetWalletAddress(deployer.address)
+
+        // from master -> wallet InterTransfer
+        expect(mintResult.transactions).toHaveTransaction({
+            from: missw.address,
+            to: missw_wallet_of_deployer,
+            success: true,
+        });
+
+        const missw_wallet_contract = blockchain.openContract(MisswWallet.fromAddress(missw_wallet_of_deployer));
+        const balance_deployer = (await missw_wallet_contract.getGetWalletData()).balance
+        expect(balance_deployer).toEqual(toNano("200000000"));
+
+        // should be fail
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Development",
+                receiver: deployer.address,
+                amount: toNano("100000000"),
+                lock: false
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Development",
+                receiver: deployer.address,
+                amount: toNano("100"),
+                lock: true
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+
+        await sleep(1000);
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Development",
+                receiver: deployer.address,
+                amount: toNano(800000000/(3600*24*30*12*3)),
+                lock: true
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: true,
+        });
+
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.5'),
+            },
+            {
+                $$type: "Development",
+                receiver: deployer.address,
+                amount: toNano(800000000/(3600*24*30*12)),
+                lock: true
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+    });
+
+    it('TEST: Treasury', async () => {
+        const total_supply_0 = (await missw.getGetJettonData()).total_supply;
+        expect(total_supply_0).toEqual(0n);
+
+        let mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: 'Treasury',
+                receiver: deployer.address,
+                amount: toNano("400000000"),
+                lock: false
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: true,
+        });
+
+        const total_supply = (await missw.getGetJettonData()).total_supply;
+        expect(total_supply).toEqual(toNano("400000000"));
+
+        // check balance of deployer
+        const missw_wallet_of_deployer = await missw.getGetWalletAddress(deployer.address)
+
+        // from master -> wallet InterTransfer
+        expect(mintResult.transactions).toHaveTransaction({
+            from: missw.address,
+            to: missw_wallet_of_deployer,
+            success: true,
+        });
+
+        const missw_wallet_contract = blockchain.openContract(MisswWallet.fromAddress(missw_wallet_of_deployer));
+        const balance_deployer = (await missw_wallet_contract.getGetWalletData()).balance
+        expect(balance_deployer).toEqual(toNano("400000000"));
+
+        // should be fail
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Treasury",
+                receiver: deployer.address,
+                amount: toNano("100000"),
+                lock: false
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.1'),
+            },
+            {
+                $$type: "Treasury",
+                receiver: deployer.address,
+                amount: toNano("100"),
+                lock: true
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
+
+
+        await sleep(1000);
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Treasury",
+                receiver: deployer.address,
+                amount: toNano(1600000000/(3600*24*30*12*2)),
+                lock: true
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: true,
+        });
+
+        mintResult = await missw.send(
+            deployer.getSender(),
+            {
+                value: toNano('0.2'),
+            },
+            {
+                $$type: "Treasury",
+                receiver: deployer.address,
+                amount: toNano(1600000000/(3600*24*30*12*2)),
+                lock: true
+            }
+        );
+
+        expect(mintResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: missw.address,
+            success: false,
+        });
 
     });
 
@@ -257,6 +563,7 @@ describe('Missw', () => {
 
         // 2.3 from missw -> beauty address of id 1
         const beauty_address_of_1 = await missw.getGetBeautyAddress(1n);
+
         expect(voteResult.transactions).toHaveTransaction({
             from: missw.address,
             to: beauty_address_of_1,

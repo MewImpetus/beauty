@@ -16,7 +16,15 @@ export async function run(provider: NetworkProvider) {
     const beauty_address_of_1 = await missw.getGetBeautyAddress(1n);
     const beauty = provider.open(Beauty.fromAddress(beauty_address_of_1));
     const votes = await beauty.getGetVotes();
-    console.log(votes);
+    console.log("votes1:", votes);
+
+    const log_counts = await missw.getVoteRecordCount()
+    console.log("log_counts:", log_counts)
+
+    const beauty_address_of_100 = await missw.getGetBeautyAddress(1000n);
+    const beauty100 = provider.open(Beauty.fromAddress(beauty_address_of_100));
+    const votes100 = await beauty.getGetVotes();
+    console.log("votes100:", votes100);
     // like this:
     // 100n
 
@@ -24,7 +32,7 @@ export async function run(provider: NetworkProvider) {
     const log_address_of_1 = await missw.getVoteLogAddress(1n);
     const logs = provider.open(VoteLogs.fromAddress(log_address_of_1));
     const record = await logs.getVoteRecord();
-    console.log(record);
+    console.log('record1:', record);
     // like this:
     // {                                                                                                                                                                                                                                                                                                                                                                                                                                                      
     //     '$$type': 'VoteInfo',
@@ -35,4 +43,8 @@ export async function run(provider: NetworkProvider) {
     //     votes: 100n
     //   }
 
+    const log_address_of_2 = await missw.getVoteLogAddress(2n);
+    const logs2 = provider.open(VoteLogs.fromAddress(log_address_of_2));
+    const record2 = await logs.getVoteRecord();
+    console.log("record2:", record2);
 }

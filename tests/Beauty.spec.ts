@@ -51,7 +51,7 @@ describe('Beauty', () => {
             },
             {
                 $$type: "Vote",
-                value: 10n
+                value: 2n
             }
         )
 
@@ -64,7 +64,7 @@ describe('Beauty', () => {
 
         const votes = await beauty.getGetVotes()
 
-        expect(votes).toEqual(10n)
+        expect(votes).toEqual(2n)
 
 
 

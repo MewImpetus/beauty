@@ -224,6 +224,158 @@ contract Missw with JettonMaster, Deployable {
         self._mint(ctx, _msg);
     }
 
+
+    receive(msg: Foundation){
+        let delay: Int = 1; // TODO modify to 3600 * 24 * 30 * 12;
+        require((now() - self.deployed_at) > delay, "Still locked, unable to mine");
+        let ctx: Context = context();
+        let can_mint: Int = min((self.allocation.foundation.second *
+                ((now() - self.deployed_at) - delay) -
+                self.allocation.foundation.minted_lock),
+            (self.allocation.foundation.lock - self.allocation.foundation.minted_lock)
+        );
+        require(msg.amount <= can_mint, "Mining amount exceeds limit");
+        self.allocation.foundation.minted_lock = self.allocation.foundation.minted_lock  + msg.amount;
+        let _msg: JettonMint = JettonMint{
+            origin: ctx.sender,
+            receiver: msg.receiver,
+            amount: msg.amount,
+            custom_payload: emptyCell(),
+            forward_ton_amount: 0,
+            forward_payload: emptySlice()
+        };
+        self._mint_validate(ctx, _msg);
+        self._mint(ctx, _msg);
+    }
+
+    receive(msg: Development){
+        let ctx: Context = context();
+        // unlock
+        if (!msg.lock) {
+            self.allocation.development.minted_unlock = (self.allocation.development.minted_unlock + msg.amount);
+            require(self.allocation.development.minted_unlock <= self.allocation.development.unlock, "Mining amount exceeds limit");
+        } else {
+            let can_mint: Int = min((self.allocation.development.second *
+                    (now() -
+                    self.deployed_at) -
+                    self.allocation.development.minted_lock),
+                (self.allocation.development.lock - self.allocation.development.minted_lock)
+            );
+            require(msg.amount <= can_mint, "Mining amount exceeds limit");
+            self.allocation.development.minted_lock = self.allocation.development.minted_lock + msg.amount;
+        }
+        let _msg: JettonMint = JettonMint{
+            origin: ctx.sender,
+            receiver: msg.receiver,
+            amount: msg.amount,
+            custom_payload: emptyCell(),
+            forward_ton_amount: 0,
+            forward_payload: emptySlice()
+        };
+        self._mint_validate(ctx, _msg);
+        self._mint(ctx, _msg);
+    }
+
+    receive(msg: Treasury){
+        let ctx: Context = context();
+        // unlock
+        if (!msg.lock) {
+            self.allocation.treasury.minted_unlock = (self.allocation.treasury.minted_unlock + msg.amount);
+            require(self.allocation.treasury.minted_unlock <= self.allocation.treasury.unlock, "Mining amount exceeds limit");
+        } else {
+            let can_mint: Int = min((self.allocation.treasury.second *
+                    (now() -
+                    self.deployed_at) -
+                    self.allocation.treasury.minted_lock),
+                (self.allocation.treasury.lock - self.allocation.treasury.minted_lock)
+            );
+            require(msg.amount <= can_mint, "Mining amount exceeds limit");
+            self.allocation.treasury.minted_lock = self.allocation.treasury.minted_lock + msg.amount;
+        }
+        let _msg: JettonMint = JettonMint{
+            origin: ctx.sender,
+            receiver: msg.receiver,
+            amount: msg.amount,
+            custom_payload: emptyCell(),
+            forward_ton_amount: 0,
+            forward_payload: emptySlice()
+        };
+        self._mint_validate(ctx, _msg);
+        self._mint(ctx, _msg);
+    }
+
+    receive(msg: VoteLiquidity){
+        let ctx: Context = context();
+        // unlock
+        if (!msg.lock) {
+            self.allocation.vote_liquidity.minted_unlock = (self.allocation.vote_liquidity.minted_unlock + msg.amount);
+            require(self.allocation.vote_liquidity.minted_unlock <= self.allocation.vote_liquidity.unlock, "Mining amount exceeds limit");
+        } else {
+            let can_mint: Int = min((self.allocation.vote_liquidity.second *
+                    (now() -
+                    self.deployed_at) -
+                    self.allocation.vote_liquidity.minted_lock),
+                (self.allocation.vote_liquidity.lock - self.allocation.vote_liquidity.minted_lock)
+            );
+            require(msg.amount <= can_mint, "Mining amount exceeds limit");
+            self.allocation.vote_liquidity.minted_lock = self.allocation.vote_liquidity.minted_lock + msg.amount;
+        }
+        let _msg: JettonMint = JettonMint{
+            origin: ctx.sender,
+            receiver: msg.receiver,
+            amount: msg.amount,
+            custom_payload: emptyCell(),
+            forward_ton_amount: 0,
+            forward_payload: emptySlice()
+        };
+        self._mint_validate(ctx, _msg);
+        self._mint(ctx, _msg);
+    }
+
+    receive(msg: Incentives){
+        let ctx: Context = context();
+        let can_mint: Int = min((self.allocation.incentives.second *
+                (now() - self.deployed_at) -
+                self.allocation.incentives.minted_lock),
+            (self.allocation.incentives.lock - self.allocation.incentives.minted_lock)
+        );
+        require(msg.amount <= can_mint, "Mining amount exceeds limit");
+        self.allocation.incentives.minted_lock = self.allocation.incentives.minted_lock  + msg.amount;
+        let _msg: JettonMint = JettonMint{
+            origin: ctx.sender,
+            receiver: msg.receiver,
+            amount: msg.amount,
+            custom_payload: emptyCell(),
+            forward_ton_amount: 0,
+            forward_payload: emptySlice()
+        };
+        self._mint_validate(ctx, _msg);
+        self._mint(ctx, _msg);
+    }
+
+    receive(msg: EarlyInvestors){
+        let delay: Int = 1; // TODO modify to 3600 * 24 * 30 * 12;
+        require((now() - self.deployed_at) > delay, "Still locked, unable to mine");
+        let ctx: Context = context();
+        let can_mint: Int = min((self.allocation.early_investors.second *
+                ((now() - self.deployed_at) - delay) -
+                self.allocation.early_investors.minted_lock),
+            (self.allocation.early_investors.lock - self.allocation.early_investors.minted_lock)
+        );
+        require(msg.amount <= can_mint, "Mining amount exceeds limit");
+        self.allocation.early_investors.minted_lock = self.allocation.early_investors.minted_lock  + msg.amount;
+        let _msg: JettonMint = JettonMint{
+            origin: ctx.sender,
+            receiver: msg.receiver,
+            amount: msg.amount,
+            custom_payload: emptyCell(),
+            forward_ton_amount: 0,
+            forward_payload: emptySlice()
+        };
+        self._mint_validate(ctx, _msg);
+        self._mint(ctx, _msg);
+    }
+
     receive(msg: BeautyVote){
         let ctx: Context = context();
         // send missw to receiver wallet
