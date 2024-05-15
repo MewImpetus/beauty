@@ -10,12 +10,13 @@ describe('Beauty', () => {
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
+        deployer = await blockchain.treasury('deployer');
 
         const id = 1n
 
-        beauty = blockchain.openContract(await Beauty.fromInit(id));
+        beauty = blockchain.openContract(await Beauty.fromInit(deployer.address, deployer.address));
 
-        deployer = await blockchain.treasury('deployer');
+        
 
         const deployResult = await beauty.send(
             deployer.getSender(),
@@ -51,6 +52,7 @@ describe('Beauty', () => {
             },
             {
                 $$type: "Vote",
+                id: 1n,
                 value: 2n
             }
         )
@@ -62,7 +64,7 @@ describe('Beauty', () => {
         });
 
 
-        const votes = await beauty.getGetVotes()
+        const votes = await beauty.getGetVotesOf(1n);
 
         expect(votes).toEqual(2n)
 

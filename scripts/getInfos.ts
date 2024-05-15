@@ -13,22 +13,24 @@ export async function run(provider: NetworkProvider) {
 
 
     // get beauty votes
-    const beauty_address_of_1 = await missw.getGetBeautyAddress(1n);
-    const beauty = provider.open(Beauty.fromAddress(beauty_address_of_1));
-    const votes = await beauty.getGetVotes();
+    const beauty_address = await missw.getGetBeautyAddress();
+    const beauty = provider.open(Beauty.fromAddress(beauty_address));
+    const votes = await beauty.getGetVotesOf(1n);
     console.log("votes1:", votes);
 
-    const log_counts = await missw.getVoteRecordCount()
-    console.log("log_counts:", log_counts)
 
-    const beauty_address_of_100 = await missw.getGetBeautyAddress(1000n);
-    const beauty100 = provider.open(Beauty.fromAddress(beauty_address_of_100));
-    const votes100 = await beauty.getGetVotes();
+
+
+    const votes100 = await beauty.getGetVotesOf(2n);
     console.log("votes100:", votes100);
     // like this:
     // 100n
 
     // get a log 
+
+    const log_counts = await missw.getVoteRecordCount()
+    console.log("log_counts:", log_counts)
+
     const log_address_of_1 = await missw.getVoteLogAddress(1n);
     const logs = provider.open(VoteLogs.fromAddress(log_address_of_1));
     const record = await logs.getVoteRecord();

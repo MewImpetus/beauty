@@ -38,7 +38,12 @@ export async function run(provider: NetworkProvider) {
         {
             value: toNano('0.2'),
         },
-        "Mint:All"
+        {
+            $$type: "AirDrop",
+            receiver: owner,
+            amount: toNano("250000000"),
+            lock: false
+        }
     );
 
     // vote to a beauty

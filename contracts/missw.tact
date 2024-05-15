@@ -111,6 +111,7 @@ contract Missw with JettonMaster, Deployable {
     jetton_content: Cell;
     vote_receiver: Address;
     vote_record_count: Int = 0;
+    beauty_address: Address;
     amount2votes_factor: Int = ton("1");
     deployed_at: Int as uint32;
     allocation: Allocation;
@@ -120,6 +121,7 @@ contract Missw with JettonMaster, Deployable {
         self.vote_receiver = vote_receiver;
         self.jetton_content = jetton_content;
         self.deployed_at = now();
+        self.beauty_address = newAddress(0, 0);
         let year_second: Int = 3600 * 24 * 30 * 12;
         self.allocation = Allocation{
             airdrop: Limit{
@@ -181,19 +183,21 @@ contract Missw with JettonMaster, Deployable {
         };
     }
 
-    receive("Mint:All"){
+    receive("deploy beauty") {
+        require(self.beauty_address == newAddress(0, 0), "Only be deployed once");
         let ctx: Context = context();
-        let msg: JettonMint = JettonMint{
-            origin: ctx.sender,
-            receiver: ctx.sender,
-            amount: self.max_supply,
-            custom_payload: emptyCell(),
-            forward_ton_amount: 0,
-            forward_payload: emptySlice()
-        };
-        self._mint_validate(ctx, msg);
-        self._mint(ctx, msg);
-        self.mintable = false;
+        let init_beauty: StateInit = self.calculate_beauty_init(myAddress(), self.vote_receiver);
+        self.beauty_address = contractAddress(init_beauty);
+        send(SendParameters{
+                to: self.beauty_address,
+                value: 0,
+                bounce: true,
+                mode: SendRemainingValue, //SendPayGasSeparately
+                body: "deploy".asComment(),
+                code: init_beauty.code,
+                data: init_beauty.data
+            }
+        );
     }
 
     receive(msg: AirDrop){
@@ -382,7 +386,7 @@ contract Missw with JettonMaster, Deployable {
         let init_wallet: StateInit = self.calculate_jetton_wallet_init(ctx.sender);
         send(SendParameters{
                 to: contractAddress(init_wallet),
-                value: (ctx.value - ton("0.18")),
+                value: (ctx.value - ton("0.2")),
                 bounce: true,
                 mode: SendPayGasSeparately,
                 body: VoteTransfer{
@@ -398,15 +402,12 @@ contract Missw with JettonMaster, Deployable {
             }
         );
         // add beauty votes
-        let init_beauty: StateInit = self.calculate_beauty_init(msg.id);
         send(SendParameters{
-                to: contractAddress(init_beauty),
-                value: ton("0.01"),
+                to: self.beauty_address,
+                value: ton("0.018"),
                 bounce: true,
                 mode: SendPayGasSeparately, //SendPayGasSeparately
-                body: Vote{value: self.calculate_votes(msg.amount)}.toCell(),
-                code: init_beauty.code,
-                data: init_beauty.data
+                body: Vote{id: msg.id, value: self.calculate_votes(msg.amount)}.toCell()
             }
         );
         // add vote record
@@ -414,12 +415,12 @@ contract Missw with JettonMaster, Deployable {
         let init_logs: StateInit = self.calculate_log_init(self.vote_record_count);
         send(SendParameters{
                 to: contractAddress(init_logs),
-                value: ton("0.011"),
+                value: ton("0.02"),
                 bounce: true,
                 mode: SendPayGasSeparately, //SendPayGasSeparately
                 body: VoteRecord{
                     beauty_id: msg.id,
-                    beauty_address: contractAddress(init_beauty),
+                    beauty_address: self.beauty_address,
                     voter: ctx.sender,
                     amount: msg.amount,
                     votes: self.calculate_votes(msg.amount)
@@ -444,8 +445,8 @@ contract Missw with JettonMaster, Deployable {
         return votes;
     }
 
-    inline fun calculate_beauty_init(id: Int): StateInit {
-        return initOf Beauty(id);
+    inline fun calculate_beauty_init(owner: Address, beneficiary: Address): StateInit {
+        return initOf Beauty(owner, beneficiary);
     }
 
     inline fun calculate_log_init(seqno: Int): StateInit {
@@ -456,9 +457,8 @@ contract Missw with JettonMaster, Deployable {
         return initOf MisswWallet(owner_address, myAddress());
     }
 
-    get fun get_beauty_address(id: Int): Address {
-        let initCode: StateInit = self.calculate_beauty_init(id);
-        return contractAddress(initCode);
+    get fun get_beauty_address(): Address {
+        return self.beauty_address;
     }
 
     get fun vote_log_address(seqno: Int): Address {
