@@ -32,11 +32,11 @@ export async function run(provider: NetworkProvider) {
     await provider.waitForDeploy(missw.address);
 
     // run methods on `missw`
-    // mint all
+    // mint AirDrop
     await missw.send(
         provider.sender(),
         {
-            value: toNano('0.2'),
+            value: toNano('0.1'),
         },
         {
             $$type: "AirDrop",
@@ -45,19 +45,10 @@ export async function run(provider: NetworkProvider) {
             lock: false
         }
     );
+    
 
-    // vote to a beauty
-    await missw.send(
-        provider.sender(),
-        {
-            value: toNano('1'),
-        },
-        {
-            $$type: "BeautyVote",
-            id: 1n,
-            amount: toNano("100")
-        }
-    );
+    
+   
 
 
 }

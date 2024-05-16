@@ -1,26 +1,8 @@
 import "@stdlib/deploy";
 import "./jetton/master";
 import "./jetton/wallet";
-import "./beauty";
 import "./vote_logs";
-message BeautyVote {
-    id: Int;
-    amount: Int;
-}
-message VoteReceiver {
-    address: Address;
-}
-message Factor {
-    value: Int;
-}
-message VoteTransfer {
-    query_id: Int as uint64; // arbitrary request number
-    amount: Int as coins; // amount of jettons to transfer
-    destination: Address; // address of the new owner of the jettons
-    response_destination: Address; // address where to send a response with confirmation of a successful transfer and the rest of the incoming message Toncoins.
-    forward_ton_amount: Int as coins; // the amount of nanotons to be sent to the destination address.
-    forward_payload: Slice as remaining; // optional custom data that should be sent to the destination address.
-}
+
 message AirDrop {
     receiver: Address;
     amount: Int as uint64;
@@ -61,6 +43,10 @@ struct Limit {
     minted_lock: Int as uint64;
     minted_unlock: Int as uint64;
 }
+struct MintAbleAmount {
+    lock: Int as uint64;
+    unlock: Int as uint64;
+}
 struct Allocation {
     airdrop: Limit;
     foundation: Limit;
@@ -70,6 +56,15 @@ struct Allocation {
     incentives: Limit;
     early_investors: Limit;
 }
+struct MintAbleInfo {
+    airdrop: MintAbleAmount;
+    foundation: MintAbleAmount;
+    development: MintAbleAmount;
+    treasury: MintAbleAmount;
+    vote_liquidity: MintAbleAmount;
+    incentives: MintAbleAmount;
+    early_investors: MintAbleAmount;
+}
 
 contract MisswWallet with JettonWallet {
     balance: Int as coins = 0;
@@ -78,24 +73,6 @@ contract MisswWallet with JettonWallet {
     init(owner: Address, jetton_master: Address){
         self.owner = owner;
         self.jetton_master = jetton_master;
-    }
-
-    receive(msg: VoteTransfer){
-        let ctx: Context = context();
-        self.balance = (self.balance - msg.amount);
-        require(self.balance >= 0, "JettonWallet: Not enough jettons to transfer");
-        require(ctx.sender == self.jetton_master, "JettonWallet: Master use only"); // message should send by master
-        let _msg: JettonTransfer = JettonTransfer{
-            query_id: msg.query_id,
-            amount: msg.amount,
-            destination: msg.destination,
-            response_destination: msg.response_destination,
-            custom_payload: emptyCell(),
-            forward_ton_amount: msg.forward_ton_amount,
-            forward_payload: msg.forward_payload
-        };
-        self._transfer_estimate_remain_value(ctx, _msg);
-        self._transfer_jetton(ctx, _msg);
     }
 
     override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
@@ -111,7 +88,6 @@ contract Missw with JettonMaster, Deployable {
     jetton_content: Cell;
     vote_receiver: Address;
     vote_record_count: Int = 0;
-    beauty_address: Address;
     amount2votes_factor: Int = ton("1");
     deployed_at: Int as uint32;
     allocation: Allocation;
@@ -121,7 +97,6 @@ contract Missw with JettonMaster, Deployable {
         self.vote_receiver = vote_receiver;
         self.jetton_content = jetton_content;
         self.deployed_at = now();
-        self.beauty_address = newAddress(0, 0);
         let year_second: Int = 3600 * 24 * 30 * 12;
         self.allocation = Allocation{
             airdrop: Limit{
@@ -183,22 +158,6 @@ contract Missw with JettonMaster, Deployable {
         };
     }
 
-    receive("deploy beauty") {
-        require(self.beauty_address == newAddress(0, 0), "Only be deployed once");
-        let ctx: Context = context();
-        let init_beauty: StateInit = self.calculate_beauty_init(myAddress(), self.vote_receiver);
-        self.beauty_address = contractAddress(init_beauty);
-        send(SendParameters{
-                to: self.beauty_address,
-                value: 0,
-                bounce: true,
-                mode: SendRemainingValue, //SendPayGasSeparately
-                body: "deploy".asComment(),
-                code: init_beauty.code,
-                data: init_beauty.data
-            }
-        );
-    }
 
     receive(msg: AirDrop){
         let ctx: Context = context();
@@ -228,13 +187,14 @@ contract Missw with JettonMaster, Deployable {
         self._mint(ctx, _msg);
     }
 
-
     receive(msg: Foundation){
-        let delay: Int = 1; // TODO modify to 3600 * 24 * 30 * 12;
+        let delay: Int = 3600 * 24 * 30 * 12; // TODO modify to 3600 * 24 * 30 * 12;
         require((now() - self.deployed_at) > delay, "Still locked, unable to mine");
         let ctx: Context = context();
         let can_mint: Int = min((self.allocation.foundation.second *
-                ((now() - self.deployed_at) - delay) -
+                ((now() -
+                self.deployed_at) -
+                delay) -
                 self.allocation.foundation.minted_lock),
             (self.allocation.foundation.lock - self.allocation.foundation.minted_lock)
         );
@@ -339,7 +299,8 @@ contract Missw with JettonMaster, Deployable {
     receive(msg: Incentives){
         let ctx: Context = context();
         let can_mint: Int = min((self.allocation.incentives.second *
-                (now() - self.deployed_at) -
+                (now() -
+                self.deployed_at) -
                 self.allocation.incentives.minted_lock),
             (self.allocation.incentives.lock - self.allocation.incentives.minted_lock)
         );
@@ -358,11 +319,13 @@ contract Missw with JettonMaster, Deployable {
     }
 
     receive(msg: EarlyInvestors){
-        let delay: Int = 1; // TODO modify to 3600 * 24 * 30 * 12;
+        let delay: Int = 3600 * 24 * 30 * 12; // TODO modify to 3600 * 24 * 30 * 12;
         require((now() - self.deployed_at) > delay, "Still locked, unable to mine");
         let ctx: Context = context();
         let can_mint: Int = min((self.allocation.early_investors.second *
-                ((now() - self.deployed_at) - delay) -
+                ((now() -
+                self.deployed_at) -
+                delay) -
                 self.allocation.early_investors.minted_lock),
             (self.allocation.early_investors.lock - self.allocation.early_investors.minted_lock)
         );
@@ -380,105 +343,90 @@ contract Missw with JettonMaster, Deployable {
         self._mint(ctx, _msg);
     }
 
-    receive(msg: BeautyVote){
-        let ctx: Context = context();
-        // send missw to receiver wallet
-        let init_wallet: StateInit = self.calculate_jetton_wallet_init(ctx.sender);
-        send(SendParameters{
-                to: contractAddress(init_wallet),
-                value: (ctx.value - ton("0.2")),
-                bounce: true,
-                mode: SendPayGasSeparately,
-                body: VoteTransfer{
-                    query_id: 0,
-                    amount: msg.amount,
-                    destination: self.vote_receiver,
-                    response_destination: ctx.sender,
-                    forward_ton_amount: 0,
-                    forward_payload: emptySlice()
-                }.toCell(),
-                code: init_wallet.code,
-                data: init_wallet.data
-            }
-        );
-        // add beauty votes
-        send(SendParameters{
-                to: self.beauty_address,
-                value: ton("0.018"),
-                bounce: true,
-                mode: SendPayGasSeparately, //SendPayGasSeparately
-                body: Vote{id: msg.id, value: self.calculate_votes(msg.amount)}.toCell()
-            }
-        );
-        // add vote record
-        self.vote_record_count = (self.vote_record_count + 1);
-        let init_logs: StateInit = self.calculate_log_init(self.vote_record_count);
-        send(SendParameters{
-                to: contractAddress(init_logs),
-                value: ton("0.02"),
-                bounce: true,
-                mode: SendPayGasSeparately, //SendPayGasSeparately
-                body: VoteRecord{
-                    beauty_id: msg.id,
-                    beauty_address: self.beauty_address,
-                    voter: ctx.sender,
-                    amount: msg.amount,
-                    votes: self.calculate_votes(msg.amount)
-                }.toCell(),
-                code: init_logs.code,
-                data: init_logs.data
-            }
-        );
-    }
-
-    receive(msg: VoteReceiver){
-        self.vote_receiver = msg.address;
-    }
-
-    receive(msg: Factor){
-        self.amount2votes_factor = msg.value;
-    }
-
-    inline fun calculate_votes(amount: Int): Int {
-        let votes: Int = amount / self.amount2votes_factor;
-        require(votes > 0, "Cast at least one vote");
-        return votes;
-    }
-
-    inline fun calculate_beauty_init(owner: Address, beneficiary: Address): StateInit {
-        return initOf Beauty(owner, beneficiary);
-    }
-
-    inline fun calculate_log_init(seqno: Int): StateInit {
-        return initOf VoteLogs(seqno);
-    }
-
     override inline fun calculate_jetton_wallet_init(owner_address: Address): StateInit {
         return initOf MisswWallet(owner_address, myAddress());
     }
 
-    get fun get_beauty_address(): Address {
-        return self.beauty_address;
-    }
-
-    get fun vote_log_address(seqno: Int): Address {
-        let initCode: StateInit = self.calculate_log_init(seqno);
-        return contractAddress(initCode);
-    }
-
-    get fun vote_receiver(): Address {
-        return self.vote_receiver;
-    }
-
-    get fun vote_record_count(): Int {
-        return self.vote_record_count;
-    }
-
-    get fun amount2votes_factor(): Int {
-        return self.amount2votes_factor;
-    }
-
     get fun max_supply(): Int {
         return self.max_supply;
+    }
+
+    get fun mint_able_info(): MintAbleInfo {
+        let year_second: Int = 3600 * 24 * 30 * 12;
+        let delta: Int = (now() - self.deployed_at);
+        let _foundation_lock: Int = 0;
+        let _early_investors_lock: Int = 0;
+        if (delta > year_second) {
+            _foundation_lock = min((self.allocation.foundation.second *
+                    ((now() -
+                    self.deployed_at) -
+                    year_second) -
+                    self.allocation.foundation.minted_lock),
+                (self.allocation.foundation.lock - self.allocation.foundation.minted_lock)
+            );
+            _early_investors_lock = min((self.allocation.early_investors.second *
+                    ((now() -
+                    self.deployed_at) -
+                    year_second) -
+                    self.allocation.early_investors.minted_lock),
+                (self.allocation.early_investors.lock - self.allocation.early_investors.minted_lock)
+            );
+        }
+        return
+            MintAbleInfo{
+                airdrop: MintAbleAmount{
+                    lock: min((self.allocation.airdrop.second *
+                            (now() -
+                            self.deployed_at) -
+                            self.allocation.airdrop.minted_lock),
+                        (self.allocation.airdrop.lock - self.allocation.airdrop.minted_lock)
+                    ),
+                    unlock: (self.allocation.airdrop.unlock - self.allocation.airdrop.minted_unlock)
+                },
+                foundation: MintAbleAmount{
+                    lock: _foundation_lock,
+                    unlock: (self.allocation.foundation.unlock - self.allocation.foundation.minted_unlock)
+                },
+                development: MintAbleAmount{
+                    lock: min((self.allocation.development.second *
+                            (now() -
+                            self.deployed_at) -
+                            self.allocation.development.minted_lock),
+                        (self.allocation.development.lock - self.allocation.development.minted_lock)
+                    ),
+                    unlock: (self.allocation.foundation.unlock - self.allocation.foundation.minted_unlock)
+                },
+                treasury: MintAbleAmount{
+                    lock: min((self.allocation.treasury.second *
+                            (now() -
+                            self.deployed_at) -
+                            self.allocation.treasury.minted_lock),
+                        (self.allocation.treasury.lock - self.allocation.treasury.minted_lock)
+                    ),
+                    unlock: (self.allocation.treasury.unlock - self.allocation.treasury.minted_unlock)
+                },
+                vote_liquidity: MintAbleAmount{
+                    lock: min((self.allocation.vote_liquidity.second *
+                            (now() -
+                            self.deployed_at) -
+                            self.allocation.vote_liquidity.minted_lock),
+                        (self.allocation.vote_liquidity.lock - self.allocation.vote_liquidity.minted_lock)
+                    ),
+                    unlock: (self.allocation.vote_liquidity.unlock - self.allocation.vote_liquidity.minted_unlock)
+                },
+                incentives: MintAbleAmount{
+                    lock: min((self.allocation.incentives.second *
+                            (now() -
+                            self.deployed_at) -
+                            self.allocation.incentives.minted_lock),
+                        (self.allocation.incentives.lock - self.allocation.incentives.minted_lock)
+                    ),
+                    unlock: 0
+                },
+                early_investors: MintAbleAmount{
+                    lock: _early_investors_lock,
+                    unlock: (self.allocation.early_investors.unlock - self.allocation.early_investors.minted_unlock)
+                }
+            };
     }
 }
