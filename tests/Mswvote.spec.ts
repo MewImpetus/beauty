@@ -201,6 +201,6 @@ describe('Mswvote', () => {
         
         const factor = await mswvote.getAmount2votesFactor();
         expect(factor).toEqual(1100000000n);
-           
+        
     });
 });
