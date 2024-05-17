@@ -28,9 +28,6 @@ async function main() {
         publicKey: keyPair.publicKey
     });
 
-    // const wallet = tonweb.wallet.create({
-    //     publicKey: publicKey
-    // });
 
     const toAddress = 'UQAS8_N1tq8uFf1kzTTFjlVZN6foFzCPkVUSniWx6bHqxVSk';  // 目标地址
     const amount = TonWeb.utils.toNano('0.01');  // 发送金额: 0.01 TON
@@ -54,8 +51,8 @@ async function main() {
     const sendResult = await transfer.send();
     console.log("sendResult:", sendResult)
 
-
-    const transactions = await tonweb.provider.getTransactions(toAddress, 2);
+    // 需要上面先获取一次，这里再循环直到不一样了拿到新的id
+    const transactions = await tonweb.provider.getTransactions(toAddress, 5);
     for (const tx of transactions) {
         // console.log(tx);
         console.log(tx.transaction_id.hash)
