@@ -28,6 +28,10 @@ message VoteTransfer {
     forward_payload: Slice as remaining; // optional custom data that should be sent to the destination address.
 }
 
+message ChangeOwner {
+    newOwner: Address;
+}
+
 
 contract MswvoteWallet with JettonWallet {
     balance: Int as coins = 0;
@@ -87,7 +91,7 @@ contract Mswvote with JettonMaster, Deployable {
                 to: self.beauty_address,
                 value: 0,
                 bounce: true,
-                mode: SendRemainingValue, //SendPayGasSeparately
+                mode: SendRemainingValue, // SendPayGasSeparately
                 body: "deploy".asComment(),
                 code: init_beauty.code,
                 data: init_beauty.data
@@ -120,7 +124,7 @@ contract Mswvote with JettonMaster, Deployable {
         let init_wallet: StateInit = self.calculate_jetton_wallet_init(ctx.sender);
         send(SendParameters{
                 to: contractAddress(init_wallet),
-                value: (ctx.value - ton("0.2")),
+                value: (ctx.value - ton("0.04")),
                 bounce: true,
                 mode: SendPayGasSeparately,
                 body: VoteTransfer{
@@ -167,6 +171,21 @@ contract Mswvote with JettonMaster, Deployable {
 
     receive(msg: VoteReceiver){
         self.vote_receiver = msg.address;
+    }
+
+    receive(msg: ChangeOwner){
+        self.owner = msg.newOwner;
+        self.reply("success".asComment());
+    }
+
+    receive("withdraw") {
+        require(sender() == self.owner, "Only owner is allowed to withdraw");
+        send(SendParameters{
+            to: sender(),
+            bounce: true,
+            value: myBalance() - context().value - ton("1"),
+            mode: SendRemainingValue + SendIgnoreErrors
+        });
     }
 
     receive(msg: Factor){
