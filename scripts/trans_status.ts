@@ -37,24 +37,24 @@ async function main() {
     const seqno = await wallet.methods.seqno().call() || 0;
     
     
-    const transfer = wallet.methods.transfer({
-        secretKey: keyPair.secretKey,
-        toAddress: toAddress,
-        amount: amount,
-        seqno: seqno,  // 获取钱包当前序列号
-        payload: 'hello world'
-    });
+    // const transfer = wallet.methods.transfer({
+    //     secretKey: keyPair.secretKey,
+    //     toAddress: toAddress,
+    //     amount: amount,
+    //     seqno: seqno,  // 获取钱包当前序列号
+    //     payload: 'hello world'
+    // });
 
    
 
     // // 发送交易并获取结果
-    const sendResult = await transfer.send();
-    console.log("sendResult:", sendResult)
+    // const sendResult = await transfer.send();
+    // console.log("sendResult:", sendResult)
 
     // 需要上面先获取一次，这里再循环直到不一样了拿到新的id
-    const transactions = await tonweb.provider.getTransactions(toAddress, 5);
+    const transactions = await tonweb.provider.getTransactions(toAddress, 9);
     for (const tx of transactions) {
-        // console.log(tx);
+        console.log(tx);
         console.log(tx.transaction_id.hash)
         console.log(base64ToHex(tx.transaction_id.hash))  //https://testnet.tonviewer.com/transaction/f00ae5f38578711c02855dec216723a2bd843e973d8fc2a3d9e91358435895fb
     }
